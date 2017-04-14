@@ -1,7 +1,7 @@
-<Workspace Version="1.2.1.3083" X="-115.063747564348" Y="204.739231343081" zoom="0.857942222587846" Name="Home" Description="" RunType="Automatic" RunPeriod="1000" HasRunWithoutCrash="True">
+<Workspace Version="1.3.0.875" X="-154.490417458428" Y="272.745465281981" zoom="0.910486800477928" ScaleFactor="1" Name="Home" Description="" RunType="Manual" RunPeriod="1000" HasRunWithoutCrash="True">
   <NamespaceResolutionMap />
   <Elements>
-    <PythonNodeModels.PythonNode guid="499e624a-dab1-4b0a-bb15-cadd1d30cad0" type="PythonNodeModels.PythonNode" nickname="Python Script" x="465.25857884504" y="158.021666897352" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" isPinned="false" inputcount="1">
+    <PythonNodeModels.PythonNode guid="499e624a-dab1-4b0a-bb15-cadd1d30cad0" type="PythonNodeModels.PythonNode" nickname="Python Script" x="490.264369246434" y="-17.0188659123992" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" isPinned="false" inputcount="1">
       <PortInfo index="0" default="False" />
       <Script># these commands get executed in the current scope
 
@@ -222,6 +222,11 @@ def getNewDetailViewNumber(pts,offsetX, offsetY, stepX, stepY,gridPtsDic):
 	"newPtsPts":newPtsPts
 	}
 
+#ensure the bounds are always top left to bottom right
+def fixBoundsLine(MIN, MAX):
+    firstPt = XYZ(min(MIN.X,MAX.X), max(MIN.Y,MAX.Y),0)
+    secondPt = XYZ(max(MIN.X,MAX.X), min(MIN.Y,MAX.Y),0)
+    return (firstPt,secondPt)
 
 def getDataFromTitleBlock():
 	global SHEET
@@ -245,9 +250,12 @@ def getDataFromTitleBlock():
 
 		if retData['detailGrid_bounds']==None:
 			 retData['detailGrid_bounds'] = getParam(tb, "detailGrid_bounds")
-		
-		#parse bouunds 
-		boundOffsets = None
+		if retData['detailGrid_matrix']==None:
+			 retData['detailGrid_matrix'] = getParam(tb, "detailGrid_matrix")
+			 
+	#parse bouunds 
+	boundOffsets = None
+	if retData['detailGrid_bounds'] != None:
 		if json is not None:
 			try:
 				boundsOffsets = json.loads(retData['detailGrid_bounds'])
@@ -261,15 +269,15 @@ def getDataFromTitleBlock():
 		if boundsOffsets is not None:
 				retData["detailGrid_endPts"] = [ [bb.Min.X+boundsOffsets[0][0],bb.Max.Y-boundsOffsets[0][1],0],[bb.Max.X-boundsOffsets[1][0],bb.Min.Y+boundsOffsets[1][1],0]]
 
-		#parse matrix
-		if retData['detailGrid_matrix']==None:
-			if json is not None:
-				try:
-					retData['detailGrid_matrix'] = json.loads(getParam(tb, "detailGrid_matrix"))
-				except:
-					log(["error when parsing detailGrid_matrix from titleblock..invalid json?",e])
-			else:
-				retData['detailGrid_matrix'] = parseMatrixWithoutJSON(getParam(tb, "detailGrid_matrix"))				
+	#parse matrix
+	if retData['detailGrid_matrix'] !=None:
+		if json is not None:
+			try:
+				retData['detailGrid_matrix'] = json.loads(retData['detailGrid_matrix'])
+			except:
+				log(["error when parsing detailGrid_matrix from titleblock..invalid json?",e])
+		else:
+			retData['detailGrid_matrix'] = parseMatrixWithoutJSON(retData['detailGrid_matrix'])				
 
 
 	log(["detailGrid data found from title block:",retData])
@@ -331,8 +339,11 @@ def getPtGrid():
 		#else we can ask for user to select diagonal bounds line
 		bbCrvRef = pickObject()
 		bbCrv = elementFromReference(bbCrvRef).GeometryCurve
-		startPt = bbCrv.GetEndPoint(0)
-		endPt =  bbCrv.GetEndPoint(1)
+		#fix the diagonal line
+		endPts = fixBoundsLine(bbCrv.GetEndPoint(0),bbCrv.GetEndPoint(1))
+		startPt = endPts[0]
+		endPt =  endPts[1]
+
 		log("drawnLineCrv:",[startPt,endPt])
 	
 	
@@ -369,7 +380,7 @@ def getPtGrid():
 		"stepX": stepX,
 		"stepY": stepY
 		}
-	
+		
 def getDetailNumFromPt(pt,gridPtsDic):
     return gridPtsDic[",".join(map(lambda x: str(x), pt))]
 
@@ -431,7 +442,10 @@ def getBuiltInParam(el, builtInParamEnum, asParamObject=False):
 
 def getParam(el, paramName, asParamObject=False):
 	params = getParameters(el, asParamObject)
-	return params[paramName]
+	if paramName in params:
+		return params[paramName]
+	else:
+		return None
 
 
 def merge_two_dicts(x, y):
@@ -496,7 +510,9 @@ def highlightDuplicates(pts):
 			createDetailLine(pt, [pt[0]+100,pt[1]+100,0])
 			
 def pickObject():
-    TaskDialog.Show ("Select Bounds Line", "Select the diagonal line (drawn from top left to bottom right) representing the grid bounds after closing this dialog.")
+    
+    #__window__.Hide()
+    TaskDialog.Show ("Select Bounds Line", "Select the diagonal line representing the grid bounds after closing this dialog.")
     picked = uidoc.Selection.PickObject(ObjectType.Element)
     #__window__.Topmost = True
     #__window__.Show()

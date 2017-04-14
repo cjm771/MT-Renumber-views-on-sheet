@@ -31,7 +31,7 @@ RAW_WRITE = True
 
 #constants
 LOGFILE =  "T:\Malcolm-Chris\REVIT\PYTHON REVIT SHELL\log.txt"
-LOG_ACTIVE = False
+LOG_ACTIVE = False	
 
 def log(textArr,is_raw=False):
     global LOGFILE,LOG_ACTIVE
@@ -170,6 +170,12 @@ def getNewDetailViewNumber(pts,offsetX, offsetY, stepX, stepY,gridPtsDic):
 	"newPtsPts":newPtsPts
 	}
 
+#ensure the bounds are always top left to bottom right
+def fixBoundsLine(MIN, MAX):
+    firstPt = XYZ(min(MIN.X,MAX.X), max(MIN.Y,MAX.Y),0)
+    secondPt = XYZ(max(MIN.X,MAX.X), min(MIN.Y,MAX.Y),0)
+    return (firstPt,secondPt)
+
 
 def getDataFromTitleBlock():
 	global SHEET
@@ -193,19 +199,35 @@ def getDataFromTitleBlock():
 
 		if retData['detailGrid_bounds']==None:
 			 retData['detailGrid_bounds'] = getParam(tb, "detailGrid_bounds")
-			 try:
-				 boundsOffsets = json.loads(retData['detailGrid_bounds'])
-				 log(["json data from bounds:",boundsOffsets])
-				 retData["detailGrid_endPts"] = [ [bb.Min.X+boundsOffsets[0][0],bb.Max.Y-boundsOffsets[0][1],0],[bb.Max.X-boundsOffsets[1][0],bb.Min.Y+boundsOffsets[1][1],0]]
-				 #createDetailLine(retData["detailGrid_endPts"][0], retData["detailGrid_endPts"][1])
-			 except:
-				 log(["error when parsing detailGrid_bounds from titleblock..invalid json?"])
 		if retData['detailGrid_matrix']==None:
-			 try:
+			 retData['detailGrid_matrix'] = getParam(tb, "detailGrid_matrix")
+			 
+	#parse bouunds 
+	boundOffsets = None
+	if retData['detailGrid_bounds'] != None:
+		if json is not None:
+			try:
 				boundsOffsets = json.loads(retData['detailGrid_bounds'])
-				retData['detailGrid_matrix'] = json.loads(getParam(tb, "detailGrid_matrix"))
-			 except:
-				 log(["error when parsing detailGrid_matrix from titleblock..invalid json?"])
+				log(["json data from bounds:",boundsOffsets])
+			except:
+				log(["error when parsing detailGrid_bounds from titleblock..invalid json?"])
+		else:
+			boundsOffsets = parseBoundsWithoutJSON(retData['detailGrid_bounds'])
+		
+
+		if boundsOffsets is not None:
+				retData["detailGrid_endPts"] = [ [bb.Min.X+boundsOffsets[0][0],bb.Max.Y-boundsOffsets[0][1],0],[bb.Max.X-boundsOffsets[1][0],bb.Min.Y+boundsOffsets[1][1],0]]
+
+	#parse matrix
+	if retData['detailGrid_matrix'] !=None:
+		if json is not None:
+			try:
+				retData['detailGrid_matrix'] = json.loads(retData['detailGrid_matrix'])
+			except:
+				log(["error when parsing detailGrid_matrix from titleblock..invalid json?",e])
+		else:
+			retData['detailGrid_matrix'] = parseMatrixWithoutJSON(retData['detailGrid_matrix'])				
+
 
 	log(["detailGrid data found from title block:",retData])
 	return retData
@@ -228,8 +250,11 @@ def getPtGrid():
 		#else we can ask for user to select diagonal bounds line
 		bbCrvRef = pickObject()
 		bbCrv = elementFromReference(bbCrvRef).GeometryCurve
-		startPt = bbCrv.GetEndPoint(0)
-		endPt =  bbCrv.GetEndPoint(1)
+		#fix the diagonal line
+		endPts = fixBoundsLine(bbCrv.GetEndPoint(0),bbCrv.GetEndPoint(1))
+		startPt = endPts[0]
+		endPt =  endPts[1]
+
 		log("drawnLineCrv:",[startPt,endPt])
 	
 	
@@ -329,8 +354,10 @@ def getBuiltInParam(el, builtInParamEnum, asParamObject=False):
 
 def getParam(el, paramName, asParamObject=False):
 	params = getParameters(el, asParamObject)
-	#log(["params for ",el," :",params])
-	return params[paramName]
+	if paramName in params:
+		return params[paramName]
+	else:
+		return None
 
 def merge_two_dicts(x, y):
     """Given two dicts, merge them into a new dict as a shallow copy."""
@@ -380,11 +407,11 @@ def createDetailLine(pt1, pt2):
 	doc.Create.NewDetailCurve(SHEET, geomLine)
 
 def getPointsFromViewports(viewport):
-	outline = viewport.GetBoxOutline()
+	outline = viewport.GetLabelOutline()
 	PT = [outline.MaximumPoint.X,outline.MinimumPoint.Y,0]	
 	#createDetailLine(outline.MaximumPoint, outline.MinimumPoint)
 	return PT
-
+	
 def highlightDuplicates(pts):
 	if (len(pts)>0):
 		TaskDialog.Show ("Views share same cell", "Success! But "+str(len(pts))+" view(s) shared the same cell, they have been highlighted with a line for you to double check.")
