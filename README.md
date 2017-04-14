@@ -1,4 +1,4 @@
-Renumber Views On a Sheet [Malcs tools]  v.0.0.5
+Renumber Views On a Sheet [Malcs tools]  v.0.0.6
 =============
 
 This is part of Malcs tools
@@ -15,6 +15,18 @@ FEATURES / GOALS
 ----------------
 - Coming soon
 
+
 KNOWN ISSUES / FUTURE IMPROVEMENTS
 -----------------------------------
 - Coming soon
+
+
+UPDATE LOG
+----------
+
+- *v0.0.6*
+	- Diagonal Bounds line can be drawn in any which way now
+	- Fixed issues if titleblock params don't exist
+
+- *v0.0.5*
+	- Initial release
