@@ -1,4 +1,4 @@
-<Workspace Version="1.3.0.875" X="-154.490417458428" Y="272.745465281981" zoom="0.910486800477928" ScaleFactor="1" Name="Home" Description="" RunType="Manual" RunPeriod="1000" HasRunWithoutCrash="True">
+<Workspace Version="1.3.0.875" X="-87.490417458428" Y="254.745465281981" zoom="0.910486800477928" ScaleFactor="1" Name="Home" Description="" RunType="Manual" RunPeriod="1000" HasRunWithoutCrash="True">
   <NamespaceResolutionMap />
   <Elements>
     <PythonNodeModels.PythonNode guid="499e624a-dab1-4b0a-bb15-cadd1d30cad0" type="PythonNodeModels.PythonNode" nickname="Python Script" x="490.264369246434" y="-17.0188659123992" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" isPinned="false" inputcount="1">
@@ -72,7 +72,7 @@ SHEET = uidoc.ActiveView
 #import inspect
 
 #constants
-LOGFILE =  "Path:\To:\Log.txt"
+LOGFILE =  "T:/Malcolm-Chris/REVIT/PYTHON REVIT SHELL/log.txt"
 LOG_ACTIVE = False
 
 def log(textArr,is_raw=False):
@@ -498,7 +498,12 @@ def createDetailLine(pt1, pt2):
 
 
 def getPointsFromViewports(viewport):
-	outline = viewport.GetLabelOutline()
+	try:
+		outline = viewport.GetLabelOutline()
+	except:
+		outline = viewport.GetBoxOutline()
+
+
 	PT = [outline.MaximumPoint.X,outline.MinimumPoint.Y,0]	
 	#createDetailLine(outline.MaximumPoint, outline.MinimumPoint)
 	return PT

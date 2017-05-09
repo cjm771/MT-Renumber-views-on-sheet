@@ -407,7 +407,11 @@ def createDetailLine(pt1, pt2):
 	doc.Create.NewDetailCurve(SHEET, geomLine)
 
 def getPointsFromViewports(viewport):
-	outline = viewport.GetLabelOutline()
+	try:
+		outline = viewport.GetLabelOutline()
+	except:
+		outline = viewport.GetBoxOutline()
+		
 	PT = [outline.MaximumPoint.X,outline.MinimumPoint.Y,0]	
 	#createDetailLine(outline.MaximumPoint, outline.MinimumPoint)
 	return PT
@@ -421,7 +425,7 @@ def highlightDuplicates(pts):
 def pickObject():
     
     __window__.Hide()
-    TaskDialog.Show ("Select Bounds Line", "Select the diagonal line (drawn from top left to bottom right) representing the grid bounds after closing this dialog.")
+    TaskDialog.Show ("Select Bounds Line", "Select the diagonal line representing the grid bounds after closing this dialog.")
     picked = uidoc.Selection.PickObject(ObjectType.Element)
     #__window__.Topmost = True
     #__window__.Show()
