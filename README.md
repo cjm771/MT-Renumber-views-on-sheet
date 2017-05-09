@@ -1,4 +1,4 @@
-Renumber Views On a Sheet [Malcs tools]  v.0.0.6
+Renumber Views On a Sheet [Malcs tools]  v.0.0.61
 =============
 
 This is part of Malcs tools
@@ -26,7 +26,7 @@ UPDATE LOG
 
 - *v0.0.61*
 	- Viewports without labels no longer break the script. BoxOutline is used in this case.
-	
+
 - *v0.0.6*
 	- Diagonal Bounds line can be drawn in any which way now
 	- Fixed issues if titleblock params don't exist
